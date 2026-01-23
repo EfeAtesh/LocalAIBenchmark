@@ -39,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -188,11 +187,10 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     var temperature by remember { mutableFloatStateOf(0.7f) }
     var isLoaded by remember { mutableStateOf(false) }
 
-    var topk by remember { mutableIntStateOf(40) }
-    var topp by remember { mutableFloatStateOf(0.95f) }
-    var maxTokens by remember { mutableStateOf("1024") }
-    var randomseed by remember { mutableStateOf<Integer>(0) }
-
+    var topKText by remember { mutableStateOf("40") }
+    var topP by remember { mutableFloatStateOf(0.95f) }
+    var maxTokensText by remember { mutableStateOf("1024") }
+    var randomSeedText by remember { mutableStateOf("0") }
 
     var showDialog by remember {
         mutableStateOf(!sharedPrefs.getBoolean("hide_info", false))
@@ -302,44 +300,55 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             valueRange = 0.1f..5.0f,
             enabled = isLoaded
         )
-        Text(text = "TopP Point: ${"%.2f".format(topp)}",
+
+        Text(text = "TopP Point: ${"%.2f".format(topP)}",
             modifier = Modifier.padding(top = 8.dp))
 
         Slider(
-            value = topp,
+            value = topP,
             onValueChange = {
-                topp = it
+                topP = it
                 modelManager.setTopP(it)
             },
             valueRange = 0.1f..1.0f,
             enabled = isLoaded
         )
-        Text(text = "TopK Point: $topk",
-            modifier = Modifier.padding(top = 8.dp))
 
-        Slider(
-            value = topk.toFloat(),
-            onValueChange = {
-                topk = it.toInt()
-                modelManager.setTopK(it.toInt())
+        OutlinedTextField(
+            value = topKText,
+            onValueChange = { input ->
+                topKText = input.filter { it.isDigit() }
+                modelManager.setTopK(topKText.toIntOrNull() ?: 40)
             },
-            valueRange = 1f..100f,
+            label = { Text("Top K") },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             enabled = isLoaded
         )
 
         OutlinedTextField(
-            value = maxTokens,
-            onValueChange = { 
-                maxTokens = it.filter { char -> char.isDigit() }
-                modelManager.setMaxTokens(maxTokens.toIntOrNull() ?: 1024)
+            value = maxTokensText,
+            onValueChange = { input ->
+                maxTokensText = input.filter { it.isDigit() }
+                modelManager.setMaxTokens(maxTokensText.toIntOrNull() ?: 1024)
             },
             label = { Text("Max Tokens") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            enabled = isLoaded
         )
 
+        OutlinedTextField(
+            value = randomSeedText,
+            onValueChange = { input ->
+                randomSeedText = input.filter { it.isDigit() }
+                modelManager.setRandomSeed(randomSeedText.toIntOrNull())
+            },
+            label = { Text("Random Seed (Optional)") },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            enabled = isLoaded
+        )
 
         Button(
             onClick = {
@@ -371,7 +380,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                 )) {
                 Text(
                     text = response,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(16.dp)
                 )}
 
         }
@@ -380,16 +389,13 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             BannerAd(modifier = Modifier.fillMaxWidth())
         }
 
-        if (true) {
-            Button(
-                onClick = { benchMark = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-
-                ) {
-                Text(text = "Show BenchMark metrics")
-            }
+        Button(
+            onClick = { benchMark = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+        ) {
+            Text(text = "Show BenchMark metrics")
         }
 
         if (benchMark) {
@@ -404,13 +410,13 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                         .padding(16.dp)) {
                         Text(text = "Real-time Metrics", fontSize = 20.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
 
-
-
                         Text(text = "CPU Usage: $cpuUsage%", modifier = Modifier.padding(top = 16.dp))
 
                         Text(text = "CPU Speed: $cpuHz")
 
+
                         Text(text = "RAM Usage: $ramInfo", modifier = Modifier.padding(top = 8.dp))
+
 
 
 
