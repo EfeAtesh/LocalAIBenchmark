@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Local AI Benchmark</string>
+    <string name="notice">This app is intented for devices\' benchmark on measuring its performance when it comes to run a Small Language Model.</string>
+</resources>
