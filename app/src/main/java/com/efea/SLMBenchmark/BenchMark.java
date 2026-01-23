@@ -1,67 +1,68 @@
+package com.efea.SLMBenchmark;
+
 import android.app.ActivityManager;
 import android.content.Context;
-
 import java.io.RandomAccessFile;
 
 public class BenchMark {
-
     // This class will provide
-    /*
-    CPU USAGE & Clock Speed
-    Ram Usage & Clock Speed
-    Gpu Usage & Clock Speed
+     /*
+     CPU USAGE & Clock Speed
+     Ram Usage & Clock Speed
+     Gpu Usage & Clock Speed
 
-    In real time
+     In real time
 
-    thus they will be each graphed on modalbottom sheet seperately
+     thus they will be each graphed on modalbottom sheet seperately
 
-    functions
-    getCPUHz()
-    getCpuUsage()
-    getRAMINFO()
-
-
-     */
+     functions
+     getCPUHz()
+     getCpuUsage()
+     getRAMINFO()
 
 
-    private int totalUsage = 0;
+      */
     private int coreCount = Runtime.getRuntime().availableProcessors();
 
+    // values just in number
+    protected double cpuHz = 0.0;
+    protected double cpuUsage = 0.0;
+    protected double ramUsage;
+    protected double totalram;
 
-    public String getCPUHz(){
+    public double getCPUHz() {
+        long totalFreq = 0;
+        int activeCores = 0;
 
-
-        try {
-            RandomAccessFile reader2 = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq", "r");
-
-            String line2 = reader2.readLine();
-            reader2.close();
-
-            long freqinMegacycles2 = Long.parseLong(line2) / 1000;
-
-
-            return freqinMegacycles2 + " MHz";
-
-
-        } catch (Exception e) {
-            return "N/A";
+        for (int i = 0; i < coreCount; i++) {
+            long freq = readFreq("/sys/devices/system/cpu/cpu" + i + "/cpufreq/scaling_cur_freq");
+            if (freq > 0) {
+                totalFreq += freq;
+                activeCores++;
+            }
         }
 
-
+        if (activeCores > 0) {
+            cpuHz = (double) (totalFreq / activeCores) / 1000.0; // Average in MHz
+        } else {
+            cpuHz = 0.0;
+        }
+        return cpuHz;
     }
-    public int getCpuUsage() {
-        int totalUsage = 0;
-        int coreCount = Runtime.getRuntime().availableProcessors();
+
+    public double getCpuUsage() {
+        double totalUsageValue = 0;
 
         for (int i = 0; i < coreCount; i++) {
             long cur = readFreq("/sys/devices/system/cpu/cpu" + i + "/cpufreq/scaling_cur_freq");
             long max = readFreq("/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq");
 
             if (max > 0) {
-                totalUsage += (int) ((cur * 100) / max);
+                totalUsageValue += (double) (cur * 100.0) / max;
             }
         }
-        return totalUsage / coreCount; // Returns average percentage across cores
+        cpuUsage = totalUsageValue / coreCount;
+        return cpuUsage;
     }
 
     private long readFreq(String path) {
@@ -73,8 +74,7 @@ public class BenchMark {
         }
     }
 
-    public String getRAMINFO(Context context){
-
+    public String getRAMINFO(Context context) {
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
         activityManager.getMemoryInfo(memoryInfo);
@@ -83,11 +83,9 @@ public class BenchMark {
         long availableMemory = memoryInfo.availMem / (1024 * 1024);
         long usedMemory = totalMemory - availableMemory;
 
+        ramUsage = (double) usedMemory;
+        totalram = (double) totalMemory;
+
         return usedMemory + " MB / " + totalMemory + " MB";
-
-
     }
-
-
-
 }

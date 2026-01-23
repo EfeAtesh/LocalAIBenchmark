@@ -1,17 +1,19 @@
 package com.efea.SLMBenchmark
 
-import BenchMark
 import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -60,6 +63,11 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.MobileAds
+import ir.ehsannarmani.compose_charts.LineChart
+import ir.ehsannarmani.compose_charts.models.AnimationMode
+import ir.ehsannarmani.compose_charts.models.DrawStyle
+import ir.ehsannarmani.compose_charts.models.Line
+import ir.ehsannarmani.compose_charts.models.PopupProperties
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -199,9 +207,15 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     var benchMark by remember { mutableStateOf(false) }
 
     // Benchmark States
-    var cpuUsage by remember { mutableStateOf(0) }
-    var cpuHz by remember { mutableStateOf("N/A") }
+    var cpuUsage by remember { mutableStateOf(0.0) }
+    var cpuHz by remember { mutableStateOf(0.0) }
     var ramInfo by remember { mutableStateOf("N/A") }
+    var ramUsage by remember { mutableStateOf(0.0) }
+    var totalram by remember { mutableStateOf(0.0) }
+
+    var cpuHistory by remember { mutableStateOf(listOf<Double>()) }
+    var cpuHzHistory by remember { mutableStateOf(listOf<Double>()) }
+    var ramHistory by remember { mutableStateOf(listOf<Double>()) }
 
     LaunchedEffect(modelManager) {
         modelManager.initModel(object : ModelManager.OnLoadedCallback {
@@ -218,10 +232,29 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     LaunchedEffect(benchMark) {
         if (benchMark) {
             while (true) {
-                cpuUsage = benchMarkManager.cpuUsage
-                cpuHz = benchMarkManager.cpuHz
+                // Call methods to refresh values
+                cpuUsage = benchMarkManager.getCpuUsage()
+                cpuHz = benchMarkManager.getCPUHz()
                 ramInfo = benchMarkManager.getRAMINFO(context)
-                delay(500) // Refresh every second
+                ramUsage = benchMarkManager.ramUsage
+                totalram = benchMarkManager.totalram
+
+                val currentHistory = cpuHistory.toMutableList()
+                currentHistory.add(cpuUsage)
+                if (currentHistory.size > 20) currentHistory.removeAt(0)
+                cpuHistory = currentHistory
+
+                val currentHistory2 = cpuHzHistory.toMutableList()
+                currentHistory2.add(cpuHz)
+                if (currentHistory2.size > 20) currentHistory2.removeAt(0)
+                cpuHzHistory = currentHistory2
+
+                val currentHistory3 = ramHistory.toMutableList()
+                currentHistory3.add(ramUsage)
+                if (currentHistory3.size > 20) currentHistory3.removeAt(0)
+                ramHistory = currentHistory3
+
+                delay(500)
             }
         }
     }
@@ -407,18 +440,73 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                 content = {
                     Column(modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)) {
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())) {
+
                         Text(text = "Real-time Metrics", fontSize = 20.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
 
-                        Text(text = "CPU Usage: $cpuUsage%", modifier = Modifier.padding(top = 16.dp))
+                        LineChart(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .padding(horizontal = 22.dp),
+                            data = listOf(
+                                Line(
+                                    label = "CPU Usage",
+                                    values = cpuHistory,
+                                    color = SolidColor(Color(0xFF23af92)),
+                                    firstGradientFillColor = Color(0xFF2BC0A1).copy(alpha = .5f),
+                                    secondGradientFillColor = Color.Green,
+                                    gradientAnimationDelay = 0,
+                                    drawStyle = DrawStyle.Stroke(width = 2.dp),
+                                )
+                            ),
+                            popupProperties = PopupProperties(enabled = false),
+                        )
+                        Text(text = "CPU Usage: ${"%.2f".format(cpuUsage)}%", modifier = Modifier.padding(top = 16.dp))
 
-                        Text(text = "CPU Speed: $cpuHz")
+                        LineChart(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .padding(horizontal = 22.dp),
+                            data = listOf(
+                                Line(
+                                    label = "CPU Speed",
+                                    values = cpuHzHistory,
+                                    color = SolidColor(Color(0xFF23af92)),
+                                    firstGradientFillColor = Color(0xFF2BC0A1).copy(alpha = .5f),
+                                    secondGradientFillColor = Color.Green,
+                                    gradientAnimationDelay = 0,
+                                    drawStyle = DrawStyle.Stroke(width = 2.dp),
+                                )
+                            ),
+                            popupProperties = PopupProperties(enabled = false),
+                        )
+
+                        Text(text = "CPU Speed: ${"%.2f".format(cpuHz)} MHz")
+
+                        LineChart(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .padding(horizontal = 22.dp),
+                            data = listOf(
+                                Line(
+                                    label = "RAM Usage",
+                                    values = ramHistory,
+                                    color = SolidColor(Color(0xFF23af92)),
+                                    firstGradientFillColor = Color(0xFF2BC0A1).copy(alpha = .5f),
+                                    secondGradientFillColor = Color.Green,
+                                    gradientAnimationDelay = 0,
+                                    drawStyle = DrawStyle.Stroke(width = 2.dp),
+                                )
+                            ),
+                            popupProperties = PopupProperties(enabled = false),
+                        )
 
 
                         Text(text = "RAM Usage: $ramInfo", modifier = Modifier.padding(top = 8.dp))
-
-
-
 
                         Button(
                             onClick = { benchMark = false },
@@ -486,7 +574,7 @@ fun ShowNotice(
         },
         confirmButton = {
             Button(onClick = onConfirm) {
-                Text("Dismiss")
+                Text("Continue")
             }
         }
     )

@@ -23,8 +23,8 @@ public class ModelManager {
     private float temp = 0.7f;
     private float topP= 0.95f;
     private int topK = 40;
-    private int maxTokens = 1024; // Added
-    private Integer randomSeed = null; // Added (null means no fixed seed)
+    private int maxTokens = 1024;
+    private Integer randomSeed = null;
 
     private LlmInference llmInference;
     private final Context context;
