@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.android.billingclient.api.*
 import com.efea.SLMBenchmark.ui.theme.LocalAIBenchmarkTheme
+import com.efea.SLMBenchmark.ui.theme.primaryLight
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -66,6 +68,8 @@ import com.google.android.gms.ads.MobileAds
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.AnimationMode
 import ir.ehsannarmani.compose_charts.models.DrawStyle
+import ir.ehsannarmani.compose_charts.models.HorizontalIndicatorProperties
+import ir.ehsannarmani.compose_charts.models.LabelProperties
 import ir.ehsannarmani.compose_charts.models.Line
 import ir.ehsannarmani.compose_charts.models.PopupProperties
 import kotlinx.coroutines.delay
@@ -232,7 +236,6 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     LaunchedEffect(benchMark) {
         if (benchMark) {
             while (true) {
-                // Call methods to refresh values
                 cpuUsage = benchMarkManager.getCpuUsage()
                 cpuHz = benchMarkManager.getCPUHz()
                 ramInfo = benchMarkManager.getRAMINFO(context)
@@ -434,16 +437,23 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
         if (benchMark) {
             ModalBottomSheet(
                 onDismissRequest = { benchMark = false },
-                containerColor = Color.White,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
                 dragHandle = { BottomSheetDefaults.DragHandle(color = Color(0xFFE0E0E0)) },
                 content = {
+                    val labelProperties = LabelProperties(
+                        enabled = true,
+                        textStyle = TextStyle(color = primaryLight)
+                    )
+                    val indicatorProperties = HorizontalIndicatorProperties(
+                        textStyle = TextStyle(color = primaryLight)
+                    )
+                    
                     Column(modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
                         .verticalScroll(rememberScrollState())) {
 
-                        Text(text = "Real-time Metrics", fontSize = 20.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                        Text(text = "Real-time Metrics", fontSize = 20.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding( 16.dp))
 
                         LineChart(
                             modifier = Modifier
@@ -452,18 +462,19 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                                 .padding(horizontal = 22.dp),
                             data = listOf(
                                 Line(
-                                    label = "CPU Usage",
                                     values = cpuHistory,
-                                    color = SolidColor(Color(0xFF23af92)),
-                                    firstGradientFillColor = Color(0xFF2BC0A1).copy(alpha = .5f),
+                                    color = SolidColor(primaryLight),
+                                    firstGradientFillColor = primaryLight.copy(alpha = .5f),
                                     secondGradientFillColor = Color.Green,
                                     gradientAnimationDelay = 0,
                                     drawStyle = DrawStyle.Stroke(width = 2.dp),
                                 )
                             ),
+                            labelProperties = labelProperties,
+                            indicatorProperties = indicatorProperties,
                             popupProperties = PopupProperties(enabled = false),
                         )
-                        Text(text = "CPU Usage: ${"%.2f".format(cpuUsage)}%", modifier = Modifier.padding(top = 16.dp))
+                        Text(text = "CPU Usage: ${"%.2f".format(cpuUsage)}%", modifier = Modifier.padding(top = 16.dp).padding(vertical = 16.dp))
 
                         LineChart(
                             modifier = Modifier
@@ -472,19 +483,20 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                                 .padding(horizontal = 22.dp),
                             data = listOf(
                                 Line(
-                                    label = "CPU Speed",
                                     values = cpuHzHistory,
-                                    color = SolidColor(Color(0xFF23af92)),
-                                    firstGradientFillColor = Color(0xFF2BC0A1).copy(alpha = .5f),
+                                    color = SolidColor(primaryLight),
+                                    firstGradientFillColor = primaryLight.copy(alpha = .5f),
                                     secondGradientFillColor = Color.Green,
                                     gradientAnimationDelay = 0,
                                     drawStyle = DrawStyle.Stroke(width = 2.dp),
                                 )
                             ),
+                            labelProperties = labelProperties,
+                            indicatorProperties = indicatorProperties,
                             popupProperties = PopupProperties(enabled = false),
                         )
 
-                        Text(text = "CPU Speed: ${"%.2f".format(cpuHz)} MHz")
+                        Text(text = "CPU Speed: ${"%.2f".format(cpuHz)} MHz",modifier = Modifier.padding(top = 16.dp).padding(vertical = 16.dp))
 
                         LineChart(
                             modifier = Modifier
@@ -493,20 +505,21 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                                 .padding(horizontal = 22.dp),
                             data = listOf(
                                 Line(
-                                    label = "RAM Usage",
                                     values = ramHistory,
-                                    color = SolidColor(Color(0xFF23af92)),
-                                    firstGradientFillColor = Color(0xFF2BC0A1).copy(alpha = .5f),
+                                    color = SolidColor(primaryLight),
+                                    firstGradientFillColor = primaryLight.copy(alpha = .5f),
                                     secondGradientFillColor = Color.Green,
                                     gradientAnimationDelay = 0,
                                     drawStyle = DrawStyle.Stroke(width = 2.dp),
                                 )
                             ),
+                            labelProperties = labelProperties,
+                            indicatorProperties = indicatorProperties,
                             popupProperties = PopupProperties(enabled = false),
                         )
 
 
-                        Text(text = "RAM Usage: $ramInfo", modifier = Modifier.padding(top = 8.dp))
+                        Text(text = "RAM Usage: $ramInfo", modifier = Modifier.padding(top = 16.dp).padding(vertical = 16.dp))
 
                         Button(
                             onClick = { benchMark = false },
