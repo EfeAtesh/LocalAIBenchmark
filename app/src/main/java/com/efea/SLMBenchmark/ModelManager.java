@@ -155,8 +155,17 @@ public class ModelManager {
 
                 try (LlmInferenceSession session = LlmInferenceSession.createFromOptions(llmInference, sessionOptions)) {
                     session.addQueryChunk(prompt);
+                    long startTime = System.currentTimeMillis();
                     String result = session.generateResponse();
-                    callback.onResult(result);
+                    long endTime = System.currentTimeMillis();
+
+                    long durationMs = endTime - startTime;
+                    // Rough estimate of tokens (1 word ~ 1.3 tokens)
+                    String trimmedResult = result.trim();
+                    int wordCount = trimmedResult.isEmpty() ? 0 : trimmedResult.split("\\s+").length;
+                    double tokensPerSecond = (wordCount * 1.3) / (durationMs / 1000.0);
+
+                    callback.onResult(result, durationMs, tokensPerSecond);
                 }
             } catch (Exception e) {
                 callback.onError(e.getMessage());
@@ -170,7 +179,7 @@ public class ModelManager {
     }
 
     public interface OnResultCallback {
-        void onResult(String text);
+        void onResult(String text, long durationMs, double tps);
         void onError(String error);
     }
 

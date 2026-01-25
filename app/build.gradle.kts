@@ -54,6 +54,7 @@ dependencies {
     implementation("com.google.android.play:asset-delivery-ktx:2.2.2")
     implementation("com.google.mediapipe:tasks-genai:0.10.27")
     implementation(libs.androidx.compose.ui.text.google.fonts)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     //chart
     implementation (libs.compose.charts)

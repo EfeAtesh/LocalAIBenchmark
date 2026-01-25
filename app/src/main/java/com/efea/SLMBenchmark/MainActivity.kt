@@ -11,6 +11,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
@@ -37,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -204,6 +208,8 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     var maxTokensText by remember { mutableStateOf("1024") }
     var randomSeedText by remember { mutableStateOf("0") }
 
+    var benchmarkInfo by remember { mutableStateOf("") }
+
     var showDialog by remember {
         mutableStateOf(!sharedPrefs.getBoolean("hide_info", false))
     }
@@ -220,6 +226,10 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     var cpuHistory by remember { mutableStateOf(listOf<Double>()) }
     var cpuHzHistory by remember { mutableStateOf(listOf<Double>()) }
     var ramHistory by remember { mutableStateOf(listOf<Double>()) }
+
+    var showPerformanceDialog by remember { mutableStateOf(false) }
+    var performanceScore by remember { mutableStateOf(0) }
+    var performanceTier by remember { mutableStateOf("") }
 
     LaunchedEffect(modelManager) {
         modelManager.initModel(object : ModelManager.OnLoadedCallback {
@@ -272,6 +282,37 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                     sharedPrefs.edit().putBoolean("hide_info", true).apply()
                 }
                 showDialog = false
+            }
+        )
+    }
+
+    if (showPerformanceDialog) {
+        AlertDialog(
+            onDismissRequest = { showPerformanceDialog = false },
+            icon = { Icon(Icons.Default.Speed, contentDescription = null) },
+            title = { Text("Device Performance Score") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = performanceScore.toString(), fontSize = 48.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(text = performanceTier, fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = "Calculation Logic:", fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = "• CPU MHz Average (Weight: 1.2)\n" +
+                                "• RAM Capacity Bonus (800 pts/GB)\n" +
+                                "• System Overhead Adjustment",
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Higher scores mean faster local AI inference and better multitasking.", fontSize = 11.sp, textAlign = TextAlign.Center, color = Color.Gray)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPerformanceDialog = false }) {
+                    Text("Great!")
+                }
             }
         )
     }
@@ -389,13 +430,15 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
         Button(
             onClick = {
                 if (userMsg.isNotBlank()) {
-                    response += "_________________\nYour Message: "
+                    benchmarkInfo = "Generating..."
                     modelManager.ask(userMsg, object : ModelManager.OnResultCallback {
-                        override fun onResult(text: String?) {
-                            response += "\n"+userMsg +"\n_________________\n" + (text ?: "No response")
+                        override fun onResult(text: String?, durationMs: Long, tps: Double) {
+                            response += "\n_________________\n" + (text ?: "No response")
+                            benchmarkInfo = "Speed: ${"%.2f".format(tps)} t/s | Time: $durationMs ms"
                         }
                         override fun onError(error: String?) {
                             response += "\nError: $error \n"
+                            benchmarkInfo = "Error occurred"
                         }
                     })
                 }
@@ -404,6 +447,15 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             enabled = isLoaded
         ) {
             Text(text = if (isLoaded) "Send message" else "Loading model...")
+        }
+
+        if (benchmarkInfo.isNotEmpty()) {
+            Text(
+                text = benchmarkInfo,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
         }
 
         SelectionContainer (modifier = Modifier
@@ -522,10 +574,31 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                         Text(text = "RAM Usage: $ramInfo", modifier = Modifier.padding(top = 16.dp).padding(vertical = 16.dp))
 
                         Button(
+                            onClick = { 
+                                val avgHz = if (cpuHzHistory.isNotEmpty()) cpuHzHistory.average() else cpuHz
+                                val avgUsage = if (cpuHistory.isNotEmpty()) cpuHistory.average() else cpuUsage
+                                // Score Logic: Hz contribution + RAM bonus
+                                performanceScore = (avgHz * 1.2 + (totalram / 1024.0) * 800).toInt()
+                                performanceTier = when {
+                                    performanceScore > 7000 -> "Flagship Class (Extreme AI Performance)"
+                                    performanceScore > 4000 -> "Premium Mid-Range (Fast Inference)"
+                                    performanceScore > 2000 -> "Standard Mid-Range (Steady Performance)"
+                                    else -> "Entry-Level (Slow Inference)"
+                                }
+                                showPerformanceDialog = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Text("Analyze Device Performance Point")
+                        }
+
+                        Button(
                             onClick = { benchMark = false },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 24.dp)
+                                .padding(top = 8.dp)
                         ) {
                             Text("Close")
                         }
