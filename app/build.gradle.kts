@@ -40,7 +40,7 @@ android {
     buildFeatures {
         compose = true
     }
-    assetPacks += (":model_assets")
+    assetPacks.add(":model_assets")
 }
 
 dependencies {
@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
 
     implementation("com.google.android.gms:play-services-ads:24.9.0")
     implementation("com.android.billingclient:billing-ktx:7.1.1")
@@ -71,4 +72,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+
+
 }

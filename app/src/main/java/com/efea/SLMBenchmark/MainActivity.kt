@@ -1,6 +1,8 @@
 package com.efea.SLMBenchmark
 
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -22,7 +24,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
@@ -190,6 +194,27 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+fun shareBenchmarkResult(context: Context, score: Int, tier: String, info: String) {
+    val model = Build.MODEL
+    val manufacturer = Build.MANUFACTURER
+    val shareText = """
+        🚀 Local AI Benchmark Result
+        📱 Device: $manufacturer $model
+        🏆 Performance Score: $score
+        🎖️ Rating: $tier
+        📊 $info
+        
+        Download the app to test your device's AI power!
+    """.trimIndent()
+
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "Local AI Benchmark Result")
+        putExtra(Intent.EXTRA_TEXT, shareText)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share via"))
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
@@ -289,29 +314,38 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
     if (showPerformanceDialog) {
         AlertDialog(
             onDismissRequest = { showPerformanceDialog = false },
-            icon = { Icon(Icons.Default.Speed, contentDescription = null) },
-            title = { Text("Device Performance Score") },
+            icon = { Icon(Icons.Default.Build, contentDescription = null) },
+            title = { Text("Benchmark Results") },
             text = {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "Device Score", fontSize = 14.sp, color = Color.Gray)
                     Text(text = performanceScore.toString(), fontSize = 48.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text(text = performanceTier, fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                    Text(text = performanceTier, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                    
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Calculation Logic:", fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
-                    Text(
-                        text = "• CPU MHz Average (Weight: 1.2)\n" +
-                                "• RAM Capacity Bonus (800 pts/GB)\n" +
-                                "• System Overhead Adjustment",
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Higher scores mean faster local AI inference and better multitasking.", fontSize = 11.sp, textAlign = TextAlign.Center, color = Color.Gray)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(text = benchmarkInfo, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = "The score considers your average CPU clock speed, total RAM capacity, and actual AI inference tokens-per-second.", fontSize = 11.sp, lineHeight = 14.sp)
+                        }
+                    }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showPerformanceDialog = false }) {
-                    Text("Great!")
+                    Text("Dismiss")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    shareBenchmarkResult(context, performanceScore, performanceTier, benchmarkInfo)
+                }) {
+                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+                    Text("Share Results")
                 }
             }
         )
@@ -434,7 +468,19 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                     modelManager.ask(userMsg, object : ModelManager.OnResultCallback {
                         override fun onResult(text: String?, durationMs: Long, tps: Double) {
                             response += "\n_________________\n" + (text ?: "No response")
-                            benchmarkInfo = "Speed: ${"%.2f".format(tps)} t/s | Time: $durationMs ms"
+                            
+                            // Calculate Performance Score dynamically
+                            val avgHz = if (cpuHzHistory.isNotEmpty()) cpuHzHistory.average() else cpuHz
+                            performanceScore = (avgHz * 1.2 + (totalram / 1024.0) * 800 + (tps * 500)).toInt()
+                            performanceTier = when {
+                                performanceScore > 8000 -> "Flagship Class (Extreme AI Performance)"
+                                performanceScore > 5000 -> "Premium Mid-Range (Fast Inference)"
+                                performanceScore > 3000 -> "Standard Mid-Range (Steady Performance)"
+                                else -> "Entry-Level (Slow Inference)"
+                            }
+                            
+                            benchmarkInfo = "Latest Speed: ${"%.2f".format(tps)} t/s | Time: $durationMs ms"
+                            showPerformanceDialog = true
                         }
                         override fun onError(error: String?) {
                             response += "\nError: $error \n"
@@ -576,8 +622,6 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                         Button(
                             onClick = { 
                                 val avgHz = if (cpuHzHistory.isNotEmpty()) cpuHzHistory.average() else cpuHz
-                                val avgUsage = if (cpuHistory.isNotEmpty()) cpuHistory.average() else cpuUsage
-                                // Score Logic: Hz contribution + RAM bonus
                                 performanceScore = (avgHz * 1.2 + (totalram / 1024.0) * 800).toInt()
                                 performanceTier = when {
                                     performanceScore > 7000 -> "Flagship Class (Extreme AI Performance)"
@@ -585,6 +629,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                                     performanceScore > 2000 -> "Standard Mid-Range (Steady Performance)"
                                     else -> "Entry-Level (Slow Inference)"
                                 }
+                                benchmarkInfo = "Device Hardware Baseline"
                                 showPerformanceDialog = true
                             },
                             modifier = Modifier
@@ -640,13 +685,34 @@ fun ShowNotice(
 ){
     AlertDialog(
         onDismissRequest = onDismissRequest,
-        title = { Text("Notice") },
+        title = { Text("AI Parameter Guide") },
         text = {
-            Column {
-                Text((stringResource(R.string.notice)))
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(text = "Welcome to Local AI Benchmark! Here is a quick guide to the AI settings:", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(text = "🌡️ Temperature:", fontWeight = FontWeight.SemiBold)
+                Text(text = "Controls randomness. Lower values make output focused and deterministic; higher values (e.g., 1.0+) make it more creative but potentially incoherent.", fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(text = "🎯 Top-P (Nucleus Sampling):", fontWeight = FontWeight.SemiBold)
+                Text(text = "Limits the model to a cumulative probability of the most likely tokens. 0.95 means it only looks at the top 95% of candidates.", fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(text = "🔢 Top-K:", fontWeight = FontWeight.SemiBold)
+                Text(text = "Limits the model to the top K most likely next words. A value of 40 means the model only chooses from the 40 best options.", fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(text = "📏 Max Tokens:", fontWeight = FontWeight.SemiBold)
+                Text(text = "The maximum length of the response. Setting this too high may drain battery or cause long generation times.", fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(text = "🎲 Random Seed:", fontWeight = FontWeight.SemiBold)
+                Text(text = "If set, the model will produce the exact same result for the same prompt. Useful for consistent benchmarking.", fontSize = 13.sp)
+                
+                Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier
-                        .padding(top = 16.dp)
                         .clickable { onDontShowAgainCheckedChange(!dontShowAgainChecked) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {

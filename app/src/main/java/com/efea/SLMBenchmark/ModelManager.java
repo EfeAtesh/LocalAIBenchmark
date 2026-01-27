@@ -24,7 +24,7 @@ public class ModelManager {
     private float topP= 0.95f;
     private int topK = 40;
     private int maxTokens = 1024;
-    private Integer randomSeed = null;
+    private Integer randomSeed = 3535;
 
     private LlmInference llmInference;
     private final Context context;
@@ -41,21 +41,36 @@ public class ModelManager {
         this.assetPackManager = manager;
     }
 
+    private void listAssets() {
+        try {
+            String[] assets = context.getAssets().list("");
+            Log.d(TAG, "Available assets in APK: ");
+            if (assets != null) {
+                for (String a : assets) Log.d(TAG, " - " + a);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to list assets", e);
+        }
+    }
+
     public void initModel(OnLoadedCallback callback) {
         new Thread(() -> {
             try {
-                // 1. Önce standart Assets içinden deniyoruz (Hibrit Yapı)
+                // Debug: See what's actually inside the APK
+                listAssets();
+
+                // 1. Check Internal Assets (app module)
                 try {
                     InputStream is = context.getAssets().open(MODEL_FILE_NAME);
                     is.close();
-                    Log.d(TAG, "Model found in internal assets.");
+                    Log.d(TAG, "Model found in internal assets. Copying to cache...");
                     loadFromInternalAssets(callback);
                     return;
                 } catch (Exception e) {
-                    Log.d(TAG, "Model not in internal assets, checking Asset Pack...");
+                    Log.d(TAG, "Model '" + MODEL_FILE_NAME + "' not in internal assets.");
                 }
 
-                // 2. Eğer Assets'te yoksa Asset Pack (Play Core) kontrolü yapıyoruz
+                // 2. Check Asset Pack (Play Core)
                 if (assetPackManager == null) {
                     callback.onError("AssetPackManager not available.");
                     return;
@@ -63,12 +78,22 @@ public class ModelManager {
 
                 AssetPackLocation location = assetPackManager.getPackLocation(ASSET_PACK_NAME);
                 if (location == null) {
-                    Log.d(TAG, "Asset pack not found, requesting download...");
+                    Log.d(TAG, "Asset pack '"+ASSET_PACK_NAME+"' location is null. App size is likely too small.");
                     startDownload(callback);
                     return;
                 }
 
-                loadModelFromPath(new File(location.assetsPath(), MODEL_FILE_NAME).getAbsolutePath(), callback);
+                String assetsPath = location.assetsPath();
+                Log.d(TAG, "Asset Pack found at: " + assetsPath);
+                
+                File modelFile = new File(assetsPath, MODEL_FILE_NAME);
+                if (modelFile.exists()) {
+                    Log.d(TAG, "Model file verified in Asset Pack.");
+                    loadModelFromPath(modelFile.getAbsolutePath(), callback);
+                } else {
+                    Log.e(TAG, "Asset pack found but file is missing from path.");
+                    callback.onError("Model file missing from Asset Pack directory.");
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Failed to init model", e);
                 callback.onError("Init failed: " + e.getMessage());
@@ -100,19 +125,21 @@ public class ModelManager {
             if (state.name().equals(ASSET_PACK_NAME)) {
                 switch (state.status()) {
                     case AssetPackStatus.COMPLETED:
+                        Log.d(TAG, "Asset pack download completed.");
                         AssetPackLocation location = assetPackManager.getPackLocation(ASSET_PACK_NAME);
                         if (location != null) {
                             loadModelFromPath(new File(location.assetsPath(), MODEL_FILE_NAME).getAbsolutePath(), callback);
                         } else {
-                            callback.onError("Download finished but location not found.");
+                            callback.onError("Download finished but location still null.");
                         }
                         break;
                     case AssetPackStatus.DOWNLOADING:
                         long total = state.totalBytesToDownload();
                         long progress = total > 0 ? (state.bytesDownloaded() * 100) / total : 0;
-                        callback.onError("Downloading... " + progress + "%");
+                        Log.d(TAG, "Downloading: " + progress + "%");
                         break;
                     case AssetPackStatus.FAILED:
+                        Log.e(TAG, "Download Failed: " + state.errorCode());
                         callback.onError("Download failed: " + state.errorCode());
                         break;
                 }
@@ -160,7 +187,6 @@ public class ModelManager {
                     long endTime = System.currentTimeMillis();
 
                     long durationMs = endTime - startTime;
-                    // Rough estimate of tokens (1 word ~ 1.3 tokens)
                     String trimmedResult = result.trim();
                     int wordCount = trimmedResult.isEmpty() ? 0 : trimmedResult.split("\\s+").length;
                     double tokensPerSecond = (wordCount * 1.3) / (durationMs / 1000.0);
