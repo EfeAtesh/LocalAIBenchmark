@@ -465,9 +465,10 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             onClick = {
                 if (userMsg.isNotBlank()) {
                     benchmarkInfo = "Generating..."
+                    response += "━━━━━━━━━━━━━━━━━━━━━━\nYour Message: " + userMsg + "\n━━━━━━━━━━━━━━━━━━━━━━\n"
                     modelManager.ask(userMsg, object : ModelManager.OnResultCallback {
                         override fun onResult(text: String?, durationMs: Long, tps: Double) {
-                            response += "\n_________________\n" + (text ?: "No response")
+                            response += "\n"+ (text ?: "No response") + "\n"
                             
                             // Calculate Performance Score dynamically
                             val avgHz = if (cpuHzHistory.isNotEmpty()) cpuHzHistory.average() else cpuHz
@@ -688,9 +689,13 @@ fun ShowNotice(
         title = { Text("AI Parameter Guide") },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(text = "Welcome to Local AI Benchmark! Here is a quick guide to the AI settings:", fontWeight = FontWeight.Bold)
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+                Text(text = "Welcome to Local AI Benchmark! ", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = stringResource(R.string.notice) +  "\nHere is a quick guide to the AI settings:", fontWeight = FontWeight.Bold)
+
+
                 Text(text = "🌡️ Temperature:", fontWeight = FontWeight.SemiBold)
                 Text(text = "Controls randomness. Lower values make output focused and deterministic; higher values (e.g., 1.0+) make it more creative but potentially incoherent.", fontSize = 13.sp)
                 Spacer(modifier = Modifier.height(8.dp))
