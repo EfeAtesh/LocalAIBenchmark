@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Local AI Benchmark"
 include(":app")
- 
+include(":model_assets")
