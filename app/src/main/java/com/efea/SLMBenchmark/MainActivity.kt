@@ -693,7 +693,7 @@ fun ShowNotice(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(text = "Welcome to Local AI Benchmark! ", fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = stringResource(R.string.notice) +  "\nHere is a quick guide to the AI settings:", fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.notice) +  "\n Here is a quick guide to the AI settings:", fontWeight = FontWeight.Bold)
 
 
                 Text(text = "🌡️ Temperature:", fontWeight = FontWeight.SemiBold)
