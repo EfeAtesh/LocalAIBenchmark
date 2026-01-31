@@ -353,7 +353,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
 
     Column(modifier = Modifier
         .fillMaxSize()
-        .padding(16.dp)) {
+        .padding(horizontal = 8.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -376,17 +376,24 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             }
 
 
-            if (!removedAds) {
+
                 IconButton(
                     modifier = Modifier.padding(start = 8.dp),
                     onClick = onRemoveAdsClick
                 ) {
+                    if (!removedAds) {
                     Icon(
                         painter = painterResource(id = R.drawable.ad_off_24dp_ffffff_fill0_wght400_grad0_opsz24),
                         contentDescription = "Remove Ads"
-                    )
+                    )}
+                    else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.coffee_cup_svgrepo_com),
+                            contentDescription = "Buy him a coffee"
+                        )
+                    }
                 }
-            }
+
         }
 
         OutlinedTextField(
@@ -395,12 +402,12 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             label = { Text("Enter your message") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 2.dp),
             enabled = isLoaded
         )
 
         Text(text = "Temperature Point: ${"%.2f".format(temperature)}",
-            modifier = Modifier.padding(top = 8.dp))
+            modifier = Modifier.padding(top = 2.dp))
 
         Slider(
             value = temperature,
@@ -413,7 +420,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
         )
 
         Text(text = "TopP Point: ${"%.2f".format(topP)}",
-            modifier = Modifier.padding(top = 8.dp))
+            modifier = Modifier.padding(top = 2.dp))
 
         Slider(
             value = topP,
@@ -432,7 +439,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                 modelManager.setTopK(topKText.toIntOrNull() ?: 40)
             },
             label = { Text("Top K") },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             enabled = isLoaded
         )
@@ -444,7 +451,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                 modelManager.setMaxTokens(maxTokensText.toIntOrNull() ?: 1024)
             },
             label = { Text("Max Tokens") },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             enabled = isLoaded
         )
@@ -456,7 +463,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
                 modelManager.setRandomSeed(randomSeedText.toIntOrNull())
             },
             label = { Text("Random Seed (Optional)") },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             enabled = isLoaded
         )
@@ -670,7 +677,7 @@ fun BannerAd(modifier: Modifier = Modifier) {
         factory = { context ->
             AdView(context).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-5664498532905225/3086213087" // Test ID
+                adUnitId = "ca-app-pub-5664498532905225/5281566359" // set by 31/01/2026
                 loadAd(AdRequest.Builder().build())
             }
         }
@@ -725,7 +732,7 @@ fun ShowNotice(
                         checked = dontShowAgainChecked,
                         onCheckedChange = onDontShowAgainCheckedChange
                     )
-                    Text(text = "Don't show it again", modifier = Modifier.padding(start = 8.dp))
+                    Text(text = "Don't show it again at start", modifier = Modifier.padding(start = 8.dp))
                 }
             }
         },
