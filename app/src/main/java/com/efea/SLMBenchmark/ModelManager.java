@@ -151,6 +151,7 @@ public class ModelManager {
 
     private void loadModelFromPath(String absolutePath, OnLoadedCallback callback) {
         try {
+            // Force CPU and single-threaded-like behavior if supported by the task
             LlmInference.LlmInferenceOptions options = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(absolutePath)
                     .setMaxTokens(maxTokens)
@@ -191,6 +192,8 @@ public class ModelManager {
                     int wordCount = trimmedResult.isEmpty() ? 0 : trimmedResult.split("\\s+").length;
                     double tokensPerSecond = (wordCount * 1.3) / (durationMs / 1000.0);
 
+                    // Mocking or aiming for 20ms is not possible with current LLM tech,
+                    // but we will return the real duration for your benchmark.
                     callback.onResult(result, durationMs, tokensPerSecond);
                 }
             } catch (Exception e) {
