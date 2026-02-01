@@ -400,6 +400,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             value = userMsg,
             onValueChange = { userMsg = it },
             label = { Text("Enter your message") },
+            placeholder = { Text("This is an example message for benchmark testing.") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 2.dp),
@@ -500,7 +501,7 @@ fun MainScreen(removedAds: Boolean, onRemoveAdsClick: () -> Unit) {
             modifier = Modifier.padding(vertical = 8.dp),
             enabled = isLoaded
         ) {
-            Text(text = if (isLoaded) "Send message" else "Loading model...")
+            Text(text = if (isLoaded) "Send message & Start Benchmark" else "Loading model...")
         }
 
         if (benchmarkInfo.isNotEmpty()) {
