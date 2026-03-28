@@ -103,3 +103,5 @@ Notes & acknowledgements
 
 Maintainer
 - Maintained by EfeAtesh — open an issue on the repository for questions or feature requests.
+
+And also don't forget to check the best app that does ever exist it is librechat!!!!!!!: https://play.google.com/store/apps/details?id=com.efeates.localllm
