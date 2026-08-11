@@ -1,107 +1,80 @@
 # LocalAIBenchmark
 
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)]()
-[![platform](https://img.shields.io/badge/platform-Android-lightgrey)]()
-[![kotlin](https://img.shields.io/badge/kotlin-1.8%2B-orange)]()
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
+[![Platform](https://img.shields.io/badge/Platform-Android-lightgrey)]()
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9%2B-orange)]()
 
-LocalAIBenchmark is an Android app that helps tech reviewers and engineers assess Edge AI (on-device AI) compatibility and performance. The app runs controlled Small Language Model (SLM) inference scenarios using Google Gemma (via MediaPipe GenAI LLM inference) and reports results as benchmark points that can be exported and shared.
+**LocalAIBenchmark** is an Android application designed for tech reviewers, developers, and AI enthusiasts to evaluate On-Device AI (Edge AI) inference performance on smartphones. The app runs controlled Small Language Model (SLM) benchmarks using Google's **Gemma 3 1B** model via Google MediaPipe GenAI LLM Inference API and reports real-time system metrics (CPU clock speed, CPU usage, RAM utilization, and tokens-per-second throughput).
 
-Core idea
-- Provide reproducible, reviewer-friendly device benchmark points for on-device language model inference.
-- Measure latency, throughput, memory and runtime behavior under representative prompts and inference settings.
-- Target audience: tech reviewers, device testers, QA engineers evaluating on-device AI readiness.
+---
 
-What the app actually does (high level)
-- Detects device capabilities (CPU cores/architecture, RAM, NNAPI/Vulkan/accelerator availability)
-- Loads an on-device LLM task packaged via Play Asset Delivery (asset pack name: `model_assets`) or internal assets
-- Runs standardized prompts/scenarios with warmup + measured iterations
-- Measures and displays latency percentiles, throughput, memory usage, and other runtime metadata
-- Exports a “benchmark point” (JSON + human-readable summary) for later aggregation
-- Provides an in-app UI (Jetpack Compose) that shows settings and contextual guidance for AI parameters
+## Important: Model File Prerequisite
 
-Important repo / runtime details discovered in source
-- Package id: com.efea.SLMBenchmark
-- Android minimum SDK: 24 (minSdk in app/build.gradle.kts)
-- Current versionName (in app/build.gradle.kts): 1.2.1
-- Model asset pipeline:
-  - Uses Play Asset Delivery (asset pack `model_assets`) and also attempts to load a bundled asset.
-  - Model file checked/used: `gemma3-1b-it-int4.task` (see ModelManager.java)
-  - MediaPipe GenAI LLM Inference API is used: `com.google.mediapipe.tasks.genai.llminference.LlmInference`
-- Bench measurement helpers:
-  - BenchMark.java reads CPU frequencies per-core and reports CPU/RAM statistics (reads /sys/devices/system/cpu/... and ActivityManager memory info)
-- Dependencies of note (from app/build.gradle.kts):
-  - com.google.android.play:asset-delivery-ktx
-  - com.google.mediapipe:tasks-genai (Gemma integration)
-  - com.google.android.gms:play-services-ads
-  - Android billing client (optional paid features)
-  - Compose, compose charts library for visualizing metrics
+Due to file size limitations, the model `.task` binary is **NOT included** directly in this repository.
 
-UI & settings (in-app guidance)
-The app shows a notice and an "AI Parameter Guide" alert dialog containing the exact user-facing guidance used in the app. Key texts (copied from the app UI) include:
+### Downloading the Model
+1. You must manually download the **Gemma 3 1B INT4** model file (`gemma3-1b-it-int4.task`).
+   - Official source: [Kaggle - Gemma MediaPipe Models](https://www.kaggle.com/models/google/gemma-3/tfLite) or [Hugging Face](https://huggingface.co/google/gemma-3-1b-it-int4-gpu).
+2. Save the file with the exact name:
+   ```text
+   gemma3-1b-it-int4.task
+   ```
+3. Place the downloaded `.task` file into one of the following asset locations in the project:
+   - Internal Assets: `app/src/main/assets/gemma3-1b-it-int4.task`
+   - **OR** Asset Pack: `model_assets/src/main/assets/gemma3-1b-it-int4.task`
 
-- "Welcome to Local AI Benchmark!"
-- Notice string resource (R.string.notice): "This app is intented for devices' benchmark on measuring its performance when it comes to run a Small Language Model."
+---
 
-AI setting explanations shown in-app:
-- 🌡️ Temperature:
-  - "Controls randomness. Lower values make output focused and deterministic; higher values (e.g., 1.0+) make it more creative but potentially incoherent."
-- 🎯 Top-P (Nucleus Sampling):
-  - "Limits the model to a cumulative probability of the most likely tokens. 0.95 means it only looks at the top 95% of candidates."
-- 🔢 Top-K:
-  - "Limits the model to the top K most likely next words. A value of 40 means the model only chooses from the 40 best options."
-- 📏 Max Tokens:
-  - "The maximum length of the response. Setting this too high may drain battery or cause long generation times."
-- 🎲 Random Seed:
-  - "If set, the model will produce the exact same result for the same prompt. Useful for consistent benchmarking."
+## Core Features
 
-Play Store listing
-- Play Store link visible in the code/comments: https://play.google.com/store/apps/details?id=com.efea.SLMBenchmark
+- **On-Device LLM Benchmark**: Runs local inference using MediaPipe GenAI and calculates tokens per second (t/s) and generation latency (ms).
+- **Real-Time Hardware Metrics**: Monitors CPU frequency, active CPU core usage, and RAM consumption in real-time with dynamic Compose Line Charts.
+- **Dynamic Performance Scoring**: Evaluates your device hardware & inference throughput to assign a performance score and device class rating (Flagship, Premium Mid-Range, Standard Mid-Range, Entry-Level).
+- **AI Parameter Controls**: Adjust Temperature, Top-P (Nucleus Sampling), Top-K, Max Tokens, and Random Seed dynamically.
+- **Share Benchmark Results**: Generate and share summary benchmark cards directly to other apps.
 
-How to run (developer)
-1. Prerequisites
-   - Android Studio (latest stable)
-   - Java JDK 11+
-   - Android SDK and a device or emulator (physical device recommended for accurate edge metrics)
+---
 
-2. Build & run
-   - Open the project in Android Studio
-   - Let Gradle sync
-   - Run on a physical device (recommended) or emulator
-   - If you plan to use the model via Play Asset Delivery, ensure asset pack delivery is set up or include the model in internal assets for testing
+## Tech Stack & Clean Architecture
 
-3. In-app benchmark flow
-   - Launch app on device
-   - The app shows a welcome/notice and AI settings guide
-   - Select a benchmark scenario and start — the app performs warm-up runs followed by measurement runs and shows results and export options
+- **Language**: Kotlin & Java
+- **UI Framework**: Jetpack Compose with Material 3 Design
+- **Charts**: Compose Charts (`ir.ehsannarmani.compose_charts`)
+- **AI Engine**: Google MediaPipe GenAI Tasks (`com.google.mediapipe:tasks-genai`)
+- **Asset Management**: Play Asset Delivery (`com.google.android.play:asset-delivery-ktx`)
+- **Monetization**: Google Mobile Ads & Android In-App Billing
 
-Model loading behavior (summary)
-- The app first attempts to find `gemma3-1b-it-int4.task` in internal assets. If not present it uses Play Asset Delivery (`model_assets`) to get the model pack and then loads the model file from the asset pack path.
-- ModelManager.java handles the copy/verification and starts the MediaPipe GenAI LlmInference session on the model file.
+---
 
-Export & reports
-- Benchmarks produce a “benchmark point” object that contains:
-  - Device info and runtime configuration
-  - Latency percentiles (median / p95 / p99)
-  - Throughput metrics (requests/sec, tokens/sec)
-  - Memory usage snapshots
-  - Raw sample outputs for sanity checks
-- UI allows JSON export and share options (PNG/Markdown summaries may be available)
+## How to Build & Run
 
-Privacy & telemetry
-- Any remote sharing or telemetry should be opt-in (verify in the app settings). The app shows explicit export/share options.
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/EfeAtesh/LocalAIBenchmark.git
+   cd LocalAIBenchmark
+   ```
 
-Contributing
-- Open an issue for feature requests or device-adapter support
-- Fork and create a feature branch for changes
-- Include reproducible example scenarios or tests for significant additions
-- Document scenario formats and model adapter behavior
+2. **Add Model Asset**:
+   - Create the directory `app/src/main/assets/` if it doesn't exist.
+   - Copy `gemma3-1b-it-int4.task` into `app/src/main/assets/`.
 
-Notes & acknowledgements
-- Uses Google Gemma via MediaPipe GenAI tasks
-- Uses Play Asset Delivery for packageable large model assets
-- Includes ads & in-app billing (configurable/optional for users)
+3. **Build via Android Studio or Gradle**:
+   ```bash
+   ./gradlew assembleDebug
+   ```
 
-Maintainer
-- Maintained by EfeAtesh — open an issue on the repository for questions or feature requests.
+4. **Run on a Physical Device**:
+   - For realistic LLM performance and hardware metric readings, running on a physical Android device is recommended.
 
-And also don't forget to check the best app that does ever exist it is librechat!!!!!!!: https://play.google.com/store/apps/details?id=com.efeates.localllm
+---
+
+## Play Store
+
+- **Download on Google Play**: [Local AI Benchmark](https://play.google.com/store/apps/details?id=com.efea.SLMBenchmark)
+- Check out [LibreChat](https://play.google.com/store/apps/details?id=com.efeates.localllm) for an on-device chat client.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the `LICENSE_Version3` file for details.

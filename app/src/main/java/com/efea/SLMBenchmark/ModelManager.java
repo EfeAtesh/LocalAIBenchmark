@@ -20,8 +20,9 @@ public class ModelManager {
     private static final String TAG = "GemmaManager";
     private static final String ASSET_PACK_NAME = "model_assets";
     private static final String MODEL_FILE_NAME = "gemma3-1b-it-int4.task";
+
     private float temp = 0.7f;
-    private float topP= 0.95f;
+    private float topP = 0.95f;
     private int topK = 40;
     private int maxTokens = 1024;
     private Integer randomSeed = 3535;
@@ -44,9 +45,10 @@ public class ModelManager {
     private void listAssets() {
         try {
             String[] assets = context.getAssets().list("");
-            Log.d(TAG, "Available assets in APK: ");
             if (assets != null) {
-                for (String a : assets) Log.d(TAG, " - " + a);
+                for (String a : assets) {
+                    Log.d(TAG, "Asset found: " + a);
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to list assets", e);
@@ -56,10 +58,8 @@ public class ModelManager {
     public void initModel(OnLoadedCallback callback) {
         new Thread(() -> {
             try {
-                // Debug: See what's actually inside the APK
                 listAssets();
 
-                // 1. Check Internal Assets (app module)
                 try {
                     InputStream is = context.getAssets().open(MODEL_FILE_NAME);
                     is.close();
@@ -70,7 +70,6 @@ public class ModelManager {
                     Log.d(TAG, "Model '" + MODEL_FILE_NAME + "' not in internal assets.");
                 }
 
-                // 2. Check Asset Pack (Play Core)
                 if (assetPackManager == null) {
                     callback.onError("AssetPackManager not available.");
                     return;
@@ -78,14 +77,14 @@ public class ModelManager {
 
                 AssetPackLocation location = assetPackManager.getPackLocation(ASSET_PACK_NAME);
                 if (location == null) {
-                    Log.d(TAG, "Asset pack '"+ASSET_PACK_NAME+"' location is null. App size is likely too small.");
+                    Log.d(TAG, "Asset pack '" + ASSET_PACK_NAME + "' location is null.");
                     startDownload(callback);
                     return;
                 }
 
                 String assetsPath = location.assetsPath();
                 Log.d(TAG, "Asset Pack found at: " + assetsPath);
-                
+
                 File modelFile = new File(assetsPath, MODEL_FILE_NAME);
                 if (modelFile.exists()) {
                     Log.d(TAG, "Model file verified in Asset Pack.");
@@ -109,7 +108,9 @@ public class ModelManager {
                      OutputStream out = new FileOutputStream(tempFile)) {
                     byte[] buffer = new byte[8192];
                     int read;
-                    while ((read = in.read(buffer)) != -1) out.write(buffer, 0, read);
+                    while ((read = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, read);
+                    }
                 }
             }
             loadModelFromPath(tempFile.getAbsolutePath(), callback);
@@ -151,7 +152,6 @@ public class ModelManager {
 
     private void loadModelFromPath(String absolutePath, OnLoadedCallback callback) {
         try {
-            // Force CPU and single-threaded-like behavior if supported by the task
             LlmInference.LlmInferenceOptions options = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(absolutePath)
                     .setMaxTokens(maxTokens)
@@ -180,7 +180,6 @@ public class ModelManager {
                                 .setTopP(topP)
                                 .build();
 
-
                 try (LlmInferenceSession session = LlmInferenceSession.createFromOptions(llmInference, sessionOptions)) {
                     session.addQueryChunk(prompt);
                     long startTime = System.currentTimeMillis();
@@ -192,8 +191,6 @@ public class ModelManager {
                     int wordCount = trimmedResult.isEmpty() ? 0 : trimmedResult.split("\\s+").length;
                     double tokensPerSecond = (wordCount * 1.3) / (durationMs / 1000.0);
 
-                    // Mocking or aiming for 20ms is not possible with current LLM tech,
-                    // but we will return the real duration for your benchmark.
                     callback.onResult(result, durationMs, tokensPerSecond);
                 }
             } catch (Exception e) {
@@ -215,7 +212,6 @@ public class ModelManager {
     public void setTemp(float value) { temp = value; }
     public void setTopP(float value) { topP = value; }
     public void setTopK(int value) { topK = value; }
-
     public void setMaxTokens(int value) { maxTokens = value; }
     public void setRandomSeed(Integer seed) { randomSeed = seed; }
 }

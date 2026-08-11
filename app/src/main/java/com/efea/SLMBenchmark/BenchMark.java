@@ -5,30 +5,12 @@ import android.content.Context;
 import java.io.RandomAccessFile;
 
 public class BenchMark {
-    // This class will provide
-     /*
-     CPU USAGE & Clock Speed
-     Ram Usage & Clock Speed
-     Gpu Usage & Clock Speed
+    private final int coreCount = Runtime.getRuntime().availableProcessors();
 
-     In real time
-
-     thus they will be each graphed on modalbottom sheet seperately
-
-     functions
-     getCPUHz()
-     getCpuUsage()
-     getRAMINFO()
-
-
-      */
-    private int coreCount = Runtime.getRuntime().availableProcessors();
-
-    // values just in number
-    protected double cpuHz = 0.0;
-    protected double cpuUsage = 0.0;
-    protected double ramUsage;
-    protected double totalram;
+    private double cpuHz = 0.0;
+    private double cpuUsage = 0.0;
+    private double ramUsageMb = 0.0;
+    private double totalRamMb = 0.0;
 
     public double getCPUHz() {
         long totalFreq = 0;
@@ -43,7 +25,7 @@ public class BenchMark {
         }
 
         if (activeCores > 0) {
-            cpuHz = (double) (totalFreq / activeCores) / 1000.0; // Average in MHz
+            cpuHz = (double) (totalFreq / activeCores) / 1000.0;
         } else {
             cpuHz = 0.0;
         }
@@ -61,21 +43,16 @@ public class BenchMark {
                 totalUsageValue += (double) (cur * 100.0) / max;
             }
         }
-        cpuUsage = totalUsageValue / coreCount;
+        cpuUsage = coreCount > 0 ? totalUsageValue / coreCount : 0.0;
         return cpuUsage;
     }
 
-    private long readFreq(String path) {
-        try (RandomAccessFile reader = new RandomAccessFile(path, "r")) {
-            String line = reader.readLine();
-            return line != null ? Long.parseLong(line) : 0;
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    public String getRAMINFO(Context context) {
+    public String getRamInfo(Context context) {
         ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (activityManager == null) {
+            return "N/A";
+        }
+        
         ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
         activityManager.getMemoryInfo(memoryInfo);
 
@@ -83,9 +60,26 @@ public class BenchMark {
         long availableMemory = memoryInfo.availMem / (1024 * 1024);
         long usedMemory = totalMemory - availableMemory;
 
-        ramUsage = (double) usedMemory;
-        totalram = (double) totalMemory;
+        ramUsageMb = (double) usedMemory;
+        totalRamMb = (double) totalMemory;
 
         return usedMemory + " MB / " + totalMemory + " MB";
+    }
+
+    private long readFreq(String path) {
+        try (RandomAccessFile reader = new RandomAccessFile(path, "r")) {
+            String line = reader.readLine();
+            return line != null ? Long.parseLong(line.trim()) : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public double getRamUsageMb() {
+        return ramUsageMb;
+    }
+
+    public double getTotalRamMb() {
+        return totalRamMb;
     }
 }
