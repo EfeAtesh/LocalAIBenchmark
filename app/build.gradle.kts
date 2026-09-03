@@ -51,7 +51,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
 
-    implementation("com.google.android.gms:play-services-ads:24.9.0")
+    implementation("com.google.android.gms:play-services-ads:25.4.0")
     implementation("com.android.billingclient:billing-ktx:7.1.1")
     implementation("com.google.android.play:asset-delivery-ktx:2.2.2")
     implementation("com.google.mediapipe:tasks-genai:0.10.27")
